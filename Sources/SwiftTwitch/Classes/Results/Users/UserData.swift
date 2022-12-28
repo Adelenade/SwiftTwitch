@@ -9,7 +9,7 @@ import Foundation
 import Marshal
 
 /// `UserData` is a class that encapsulates all of the information of a single user on Twitch.
-public struct UserData: Unmarshaling {
+public struct UserData: Unmarshaling, Hashable {
 
     /// `UserType` is used to show the role that a user has on Twitch.tv.
     ///

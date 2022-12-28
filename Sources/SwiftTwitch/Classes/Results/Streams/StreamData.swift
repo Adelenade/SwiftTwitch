@@ -10,7 +10,7 @@ import Marshal
 
 /// `StreamData` is a class that encapsulates all of the information of a single returned stream
 /// from the returned array of Stream data from the New Twitch API's `Streams` methods.
-public struct StreamData: Unmarshaling {
+public struct StreamData: Unmarshaling, Hashable {
     
     /// StreamType defines the different states of being that a Stream can be in.
     ///
@@ -28,10 +28,16 @@ public struct StreamData: Unmarshaling {
     public let streamerId: String
     
     /// `streamerUserName` specifies the username of the streamer.
+    public let streamerLoginName: String
+    
+    /// `streamerUserName` specifies the username of the streamer.
     public let streamerUserName: String
     
     /// `gameId` specifies the ID of the game being streamed.
     public let gameId: String?
+    
+    /// `gameId` specifies the ID of the game being streamed.
+    public let gameName: String?
 
     /// `communityIds` specifies the communities that this stream is a part of.
     public let communityIds: [String]
@@ -63,11 +69,13 @@ public struct StreamData: Unmarshaling {
     /// - Throws: If data is missing that was expected to be non-`nil`.
     public init(object: MarshaledObject) throws {
         //attempt to unwrap as a New API object first
-        if object.optionalAny(for: Twitch.WebRequestKeys.id) != nil {
+        if object.optionalAny(for: Twitch.WebRequestKeys.communityIds) != nil {
             streamId = try object.value(for: Twitch.WebRequestKeys.id)
             streamerId = try object.value(for: Twitch.WebRequestKeys.userId)
+            streamerLoginName = try object.value(for: Twitch.WebRequestKeys.userLogin)
             streamerUserName = try object.value(for: Twitch.WebRequestKeys.userName)
             gameId = try? object.value(for: Twitch.WebRequestKeys.gameId)
+            gameName = nil
             communityIds = try object.value(for: Twitch.WebRequestKeys.communityIds)
             streamType = try object.value(for: Twitch.WebRequestKeys.type)
             title = try object.value(for: Twitch.WebRequestKeys.title)
@@ -76,19 +84,19 @@ public struct StreamData: Unmarshaling {
             thumbnailURLString = try object.value(for: Twitch.WebRequestKeys.thumbnailURL)
             viewerCount = try object.value(for: Twitch.WebRequestKeys.viewerCount)
         } else {
-            let id: Int = try object.value(for: Twitch.WebRequestKeysV5.id)
-            let channelId: Int = try object.value(for: Twitch.WebRequestKeysV5.channelID)
-            streamId = String(id)
-            streamerId = String(channelId)
-            streamerUserName = try object.value(for: Twitch.WebRequestKeysV5.channelName)
-            gameId = "" //doesn't exist on v5
-            communityIds = [""] //doesn't exist on v5
-            streamType = StreamType.live //default is live, doesn't have an error option
-            title = try object.value(for: Twitch.WebRequestKeysV5.title)
-            startTime = try object.value(for: Twitch.WebRequestKeysV5.createdAt)
-            language = try object.value(for: Twitch.WebRequestKeysV5.language)
-            thumbnailURLString = try object.value(for: Twitch.WebRequestKeysV5.thumbnailURL)
-            viewerCount = try object.value(for: Twitch.WebRequestKeysV5.viewerCount)
+            streamId = try object.value(for: Twitch.WebRequestKeys.id)
+            streamerId = try object.value(for: Twitch.WebRequestKeys.userId)
+            streamerLoginName = try object.value(for: Twitch.WebRequestKeys.userLogin)
+            streamerUserName = try object.value(for: Twitch.WebRequestKeys.userName)
+            gameId = try? object.value(for: Twitch.WebRequestKeys.gameId)
+            gameName = try? object.value(for: Twitch.WebRequestKeysV5.gameName)
+            streamType = try object.value(for: Twitch.WebRequestKeys.type)
+            title = try object.value(for: Twitch.WebRequestKeys.title)
+            viewerCount = try object.value(for: Twitch.WebRequestKeys.viewerCount)
+            startTime = try object.value(for: Twitch.WebRequestKeys.startedAt)
+            language = try object.value(for: Twitch.WebRequestKeys.language)
+            thumbnailURLString = try object.value(for: Twitch.WebRequestKeys.thumbnailURL)
+            communityIds = try object.value(for: Twitch.WebRequestKeysV5.tagIDs)
         }
     }
 }

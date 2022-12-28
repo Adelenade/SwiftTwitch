@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import Alamofire
 import Marshal
 
 /// `Twitch` allows access to client-side New Twitch API functions.
@@ -104,6 +105,10 @@ public class Twitch {
     }
     
     internal struct WebRequestKeysV5 {
+        static let tagIDs = "tag_ids"
+        static let gameName = "game_name"
+        static let userID = "user_id"
+        static let userName = "user_id"
         static let streamType = "stream_type"
         static let limit = "limit"
         static let offset = "offset"
@@ -834,7 +839,7 @@ public class Twitch {
         private static let streamMarkersURL = URL(string: "https://api.twitch.tv/helix/streams/markers")!
         
         /// The URL that will be used for all `Get Followed Streams` API calls.
-        private static let getFollowedStreamsURL = URL(string: "https://api.twitch.tv/kraken/streams/followed")!
+        private static let getFollowedStreamsURL = URL(string: "https://api.twitch.tv/helix/streams/followed")!
 
         /// `getStreams` will run the `Get Streams` API call of the New Twitch API. The returned
         /// streams are sorted in descending order such that the most-watched streamer is returned
@@ -893,13 +898,13 @@ public class Twitch {
         ///   - offset: Object offset for pagination of results. Default: 0.
         ///
         /// - seealso: `GetFollowedStreamsResult`
-        public static func getFollowedStreams(tokenManager: TwitchTokenManager = TwitchTokenManager.shared,
+        public static func getFollowedStreams(tokenManager: TwitchTokenManager = TwitchTokenManager.shared, userID: String,
                                       streamType: String? = nil, limit: Int? = nil, offset: Int? = nil, completionHandler: @escaping (GetFollowedStreamsResult) -> Void) {
             Twitch.performAPIWebRequest(
                 to: getFollowedStreamsURL, withHTTPMethod: URLRequest.RequestHeaderTypes.get,
-                withQueryParameters: convertGetFollowedStreamsParamsToDict(streamType: streamType, limit: limit,
+                withQueryParameters: convertGetFollowedStreamsParamsToDict(userID: userID, streamType: streamType, limit: limit,
                                                                    offset: offset),
-                withBodyParameters: nil, enforcesAuthorization: true, withTokenManager: tokenManager, isNewAPI: false,
+                withBodyParameters: nil, enforcesAuthorization: true, withTokenManager: tokenManager, isNewAPI: true,
                 onSuccess: { completionHandler(GetFollowedStreamsResult.success($0)) },
                 onFailure: { completionHandler(GetFollowedStreamsResult.failure($0, $1, $2)) })
             
@@ -1055,9 +1060,10 @@ public class Twitch {
         ///   - limit: input
         ///   - offset: input
         /// - Returns: The String-keyed `Dictionary` of parameters.
-        private static func convertGetFollowedStreamsParamsToDict(streamType: String?, limit: Int?,
+        private static func convertGetFollowedStreamsParamsToDict(userID: String, streamType: String?, limit: Int?,
                                                                   offset: Int?) -> [String: Any] {
             var parametersDictionary = [String: Any]()
+            parametersDictionary.addValueIfNotNil(userID, toKey: WebRequestKeysV5.userID)
             parametersDictionary.addValueIfNotNil(streamType, toKey: WebRequestKeysV5.streamType)
             parametersDictionary.addValueIfNotNil(limit, toKey: WebRequestKeysV5.limit)
             parametersDictionary.addValueIfNotNil(offset, toKey: WebRequestKeysV5.offset)
@@ -1521,33 +1527,29 @@ public class Twitch {
         onSuccess successHandler: @escaping (T) -> Void,
         onFailure failureHandler: @escaping (Data?, URLResponse?, Error?) -> Void) {
 
-        var request = URLRequest(url: queryParameters == nil ? url : url.withQueryItems(queryParameters!))
-        do {
-            if isNewAPI {
-                try request.addTokenAuthorizationHeader(fromTokenManager: tokenManager)
-            } else {
-                try request.addOAuthAuthorizationHeader(fromTokenManager: tokenManager)
-            }
-        } catch {
-            if enforcesAuthorization {
-                failureHandler(nil, nil, error)
+            guard let token = tokenManager.accessToken else {
+                failureHandler(nil, nil, nil)
                 return
             }
-        }
-
-        request.setValueToJSONContentType()
-        request.httpMethod = httpMethod
-        request.httpBody = bodyParameters?.getAsData()
-
-        urlSessionForWrapper.dataTask(with: request) { (data, response, error) in
-            guard let nonNilData = data, let dataAsDictionary = nonNilData.getAsDictionary(),
-                let retrievedObject = try? T(object: dataAsDictionary),
-                !Twitch.getIfErrorOccurred(data: data, response: response, error: error) else {
-                    failureHandler(data, response, error)
-                    return
+            guard let clientID = tokenManager.clientID else {
+                failureHandler(nil, nil, nil)
+                return
             }
-            successHandler(retrievedObject)
-        }.resume()
+            let headers: HTTPHeaders = [
+                "Client-ID": clientID,
+                "Authorization": " Bearer \(token)"
+            ]
+            let task = AF.request(queryParameters == nil ? url : url.withQueryItems(queryParameters!), method: HTTPMethod(rawValue: httpMethod ?? "get"), headers: headers)
+            
+            task.responseData { response in
+                guard let nonNilData = response.data, let dataAsDictionary = nonNilData.getAsDictionary(),
+                    let retrievedObject = try? T(object: dataAsDictionary),
+                      !Twitch.getIfErrorOccurred(data: response.data, response: response.response, error: response.error) else {
+                    failureHandler(response.data, response.response, response.error)
+                    return
+                }
+                successHandler(retrievedObject)
+            }
     }
 
     /// `getIfErrorOccurred` is a quick function used by URLTask Completion Handlers for determining

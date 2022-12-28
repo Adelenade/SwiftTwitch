@@ -12,10 +12,10 @@ public struct GetFollowedStreamsData: Unmarshaling {
     
     /// `streamData` specifies the data of the streams that was retrieved from the API call.
     public let streamData: [StreamData]
-    
-    /// `total` defines the token that displays the total number of streams from the
+
+    /// `paginationData` defines the token that allows for the pagination of results in the
     /// `Get Followed Streams` call.
-    public let total: Int
+    public let paginationData: PaginationData?
     
     /// Initializes a `GetStreamsData` object from the input `MarshaledObject`. This will throw
     /// if there is missing data from the input `MarshaledObject`.
@@ -23,7 +23,7 @@ public struct GetFollowedStreamsData: Unmarshaling {
     /// - Parameter object: The object to initialize a `GetStreamsData` object from
     /// - Throws: If data is missing that was expected to be non-`nil`.
     public init(object: MarshaledObject) throws {
-        streamData = try object.value(for: Twitch.WebRequestKeysV5.streams)
-        total = try object.value(for: Twitch.WebRequestKeysV5.total)
+        streamData = try object.value(for: Twitch.WebRequestKeys.data)
+        paginationData = try? object.value(for: Twitch.WebRequestKeys.pagination)
     }
 }
