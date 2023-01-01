@@ -34,19 +34,19 @@ public struct StreamData: Unmarshaling, Hashable {
     public let streamerUserName: String
     
     /// `gameId` specifies the ID of the game being streamed.
-    public let gameId: String?
+    public var gameId: String?
     
     /// `gameId` specifies the ID of the game being streamed.
-    public let gameName: String?
+    public var gameName: String?
 
     /// `communityIds` specifies the communities that this stream is a part of.
-    public let communityIds: [String]
+    public var communityIds: [String]
     
     /// `streamType` specifies whether the stream is live or if an error occurred.
     public let streamType: StreamType
     
     /// `title` specifies the title of the stream.
-    public let title: String
+    public var title: String
     
     /// `startTime` defines when the stream session started.
     public let startTime: Date
@@ -60,7 +60,7 @@ public struct StreamData: Unmarshaling, Hashable {
     public let thumbnailURLString: String
 
     /// `viewCounert` specifies the amount of views this stream has.
-    public let viewerCount: Int
+    public var viewerCount: Int
     
     /// Initializes a `StreamData` object from the input `MarshaledObject`. This will throw if there
     /// is missing data from the input `MarshaledObject`.
