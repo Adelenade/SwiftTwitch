@@ -14,7 +14,7 @@ public struct CreateClipData: Unmarshaling {
 
     /// `clipsInfo` specifies the received data from `Create Clip` API calls. This will contain the
     /// actual clip information from the post response.
-    public let clipsInfo: [GetBitsLeaderboardUserData]
+    public let clipsInfo: [CreateClipInfoData]
 
     /// Initializes a `CreateClipData` object from the input `MarshaledObject`. This will throw if
     /// there is missing data from the input `MarshaledObject`.
